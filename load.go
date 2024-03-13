@@ -221,12 +221,12 @@ func copyObject(ctx context.Context, si objInfo) error {
 		if err.Error() == errObjectNotFound.Error() {
 			return tgtClient.RemoveObject(ctx, tgtBucket, si.object, miniogo.RemoveObjectOptions{
 				VersionID: si.versionID,
-				Internal: miniogo.AdvancedRemoveOptions{
-					ReplicationDeleteMarker: si.deleteMarker,
-					ReplicationMTime:        oi.LastModified,
-					ReplicationStatus:       tgtReplStatus(oi.ReplicationStatus),
-					ReplicationRequest:      true, // always set this to distinguish between `mc mirror` replication and serverside
-				},
+				// Internal: miniogo.AdvancedRemoveOptions{
+				// 	ReplicationDeleteMarker: si.deleteMarker,
+				// 	ReplicationMTime:        oi.LastModified,
+				// 	ReplicationStatus:       tgtReplStatus(oi.ReplicationStatus),
+				// 	ReplicationRequest:      true, // always set this to distinguish between `mc mirror` replication and serverside
+				// },
 			})
 		} else {
 			if isMethodNotAllowedErr(err) {
@@ -242,10 +242,10 @@ func copyObject(ctx context.Context, si objInfo) error {
 	}
 	uoi, err := tgtClient.PutObject(ctx, tgtBucket, oi.Key, obj, oi.Size, miniogo.PutObjectOptions{
 		Internal: miniogo.AdvancedPutOptions{
-			SourceMTime:       oi.LastModified,
-			SourceVersionID:   oi.VersionID,
-			SourceETag:        oi.ETag,
-			ReplicationStatus: tgtReplStatus(oi.ReplicationStatus),
+			SourceMTime:     oi.LastModified,
+			SourceVersionID: oi.VersionID,
+			SourceETag:      oi.ETag,
+			// ReplicationStatus: tgtReplStatus(oi.ReplicationStatus),
 		},
 		UserMetadata:    oi.UserMetadata,
 		ContentType:     oi.ContentType,

@@ -35,6 +35,10 @@ var allFlags = []cli.Flag{
 		Usage: "path to work directory for tool",
 	},
 	cli.StringFlag{
+		Name:  "data-file, f",
+		Usage: "path to file to use for the tool",
+	},
+	cli.StringFlag{
 		Name:  "endpoint, e",
 		Usage: "S3 endpoint url",
 	},
@@ -77,9 +81,9 @@ var (
 	tgtEndpoint, tgtAccessKey, tgtSecretKey string
 	tgtBucket                               string
 
-	debug, logFlag bool
-	versions       bool
-	dirPath        string
+	debug, logFlag    bool
+	versions          bool
+	dirPath, dataFile string
 )
 
 const (
@@ -113,6 +117,7 @@ var listCmd = cli.Command{
 func checkArgsAndInit(ctx *cli.Context) {
 	debug = ctx.Bool("debug")
 	dirPath = ctx.String("data-dir")
+	dataFile = ctx.String("data-file")
 
 	srcEndpoint = ctx.String("endpoint")
 	srcAccessKey = ctx.String("access-key")
@@ -138,11 +143,11 @@ func checkArgsAndInit(ctx *cli.Context) {
 		log.Fatalln("--src-prefix is specified without --src-bucket.")
 	}
 	if srcBucket == "" {
-		log.Fatalln("--src-bucket not specified.")
+		log.Fatalln("--bucket not specified.")
 	}
 
-	if dirPath == "" {
-		console.Fatalln(fmt.Errorf("path to working dir required, please set --data-dir flag"))
+	if dirPath == "" && dataFile == "" {
+		console.Fatalln(fmt.Errorf("path to working dir required, please set --data-dir (or) --data-file flag"))
 		return
 	}
 }
@@ -153,9 +158,14 @@ func listAction(cliCtx *cli.Context) error {
 	if err != nil {
 		log.Fatalln("Could not initialize client", err)
 	}
-	f, err := os.OpenFile(path.Join(dirPath, objListFile), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+
+	if dataFile == "" {
+		dataFile = path.Join(dirPath, objListFile)
+	}
+
+	f, err := os.OpenFile(dataFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
-		log.Fatalln("Could not open file path", path.Join(dirPath, objListFile), err)
+		log.Fatalln("Could not open file path", dataFile, err)
 	}
 	defer f.Close()
 	datawriter := bufio.NewWriter(f)

@@ -63,10 +63,6 @@ var srcFlags = []cli.Flag{
 		Name:  "fake",
 		Usage: "perform a fake copy",
 	},
-	cli.StringFlag{
-		Name:  "input-file",
-		Usage: "file with list of entries to copy from DR",
-	},
 }
 
 var copyCmd = cli.Command{
@@ -108,6 +104,7 @@ func checkCopyArgsAndInit(ctx *cli.Context) {
 	tgtSecretKey = ctx.String("secret-key")
 	tgtBucket = ctx.String("bucket")
 	dirPath = ctx.String("data-dir")
+	dataFile = ctx.String("data-file")
 	versions = ctx.Bool("versions")
 	if tgtEndpoint == "" {
 		log.Fatalln("--endpoint is not provided for target")
@@ -140,8 +137,8 @@ func checkCopyArgsAndInit(ctx *cli.Context) {
 	if srcBucket == "" {
 		log.Fatalln("--src-bucket not specified.")
 	}
-	if dirPath == "" {
-		console.Fatalln(fmt.Errorf("path to working dir required, please set --data-dir flag"))
+	if dirPath == "" && dataFile == "" {
+		console.Fatalln(fmt.Errorf("path to working dir required, please set --data-dir (or) --data-file flag"))
 		return
 	}
 }
@@ -208,9 +205,12 @@ func copyAction(cliCtx *cli.Context) error {
 	skip := cliCtx.Int("skip")
 	dryRun = cliCtx.Bool("fake")
 	start := time.Now()
-	file, err := os.Open(path.Join(dirPath, objListFile))
+	if dataFile == "" {
+		dataFile = path.Join(dirPath, objListFile)
+	}
+	file, err := os.Open(dataFile)
 	if err != nil {
-		console.Fatalln("--input-file needs to be specified", err)
+		console.Fatalln("unable to read from data file %v; %v", dataFile, err)
 	}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
