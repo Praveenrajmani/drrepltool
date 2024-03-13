@@ -15,7 +15,7 @@ function init() {
 }
 
 function main() {
-    if ! ./drrepltool list --endpoint "${SRC_ENDPOINT}" --ak "${SRC_ACCESS_KEY}" --sk "${SRC_SECRET_KEY}" --versions --bucket "${bucket}" --prefix "${prefix}" --data-file "${datafile}"; then
+    if ! ./drrepltool list --endpoint "${SRC_ENDPOINT}" --ak "${SRC_ACCESS_KEY}" --sk "${SRC_SECRET_KEY}" --bucket "${bucket}" --prefix "${prefix}" --data-file "${datafile}"; then
         echo "unable to list the entries from the source"
         exit 255
     fi
@@ -25,7 +25,7 @@ function main() {
         exit 255
     fi
 
-    if ! ./drrepltool list --endpoint "${TARGET_ENDPOINT}" --ak "${TARGET_ACCESS_KEY}" --sk "${TARGET_SECRET_KEY}" --versions --bucket "${bucket}" --prefix "${prefix}" --data-file "${targetdatafile}"; then
+    if ! ./drrepltool list --endpoint "${TARGET_ENDPOINT}" --ak "${TARGET_ACCESS_KEY}" --sk "${TARGET_SECRET_KEY}" --bucket "${bucket}" --prefix "${prefix}" --data-file "${targetdatafile}"; then
         echo "unable to list the entries from the target"
         exit 255
     fi
