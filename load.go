@@ -5,14 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	miniogo "github.com/minio/minio-go/v7"
 	"os"
 	"path"
 	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
-
-	miniogo "github.com/minio/minio-go/v7"
 )
 
 var dryRun bool
@@ -43,6 +42,7 @@ type copyErr struct {
 }
 
 func (m *CopyState) queueUploadTask(obj objInfo) {
+	m.wg.Add(1) // Add worker to wait group upon queueing
 	m.objectCh <- obj
 }
 
@@ -86,10 +86,8 @@ func (c *CopyState) getFailCount() uint64 {
 
 // addWorker creates a new worker to process tasks
 func (c *CopyState) addWorker(ctx context.Context) {
-	c.wg.Add(1)
 	// Add a new worker.
 	go func() {
-		defer c.wg.Done()
 		for {
 			select {
 			case <-ctx.Done():
@@ -112,8 +110,9 @@ func (c *CopyState) addWorker(ctx context.Context) {
 	}()
 }
 func (c *CopyState) finish(ctx context.Context) {
-	close(c.objectCh)
 	c.wg.Wait() // wait on workers to finish
+
+	close(c.objectCh)
 	close(c.failedCh)
 	close(c.logCh)
 
@@ -141,8 +140,10 @@ func (c *CopyState) init(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
+				c.wg.Done() // Remove worker from wait group upon task exit
 				return
 			case o, ok := <-c.failedCh:
+				c.wg.Done() // Remove worker from wait group upon task completion
 				if !ok {
 					return
 				}
@@ -167,8 +168,10 @@ func (c *CopyState) init(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
+				c.wg.Done() // Remove worker from wait group upon task exit
 				return
 			case obj, ok := <-c.logCh:
+				c.wg.Done() // Remove worker from wait group upon task completion
 				if !ok {
 					return
 				}
