@@ -35,6 +35,7 @@ type CopyState struct {
 	count    uint64
 	failCnt  uint64
 	wg       sync.WaitGroup
+	logWg    sync.WaitGroup
 }
 
 type copyErr struct {
@@ -112,9 +113,11 @@ func (c *CopyState) addWorker(ctx context.Context) {
 }
 func (c *CopyState) finish(ctx context.Context) {
 	close(c.objectCh)
+	c.wg.Wait() // wait on workers to finish
+
 	close(c.failedCh)
 	close(c.logCh)
-	c.wg.Wait() // wait on workers to finish
+	c.logWg.Wait()
 
 	if !dryRun {
 		logMsg(fmt.Sprintf("Copied %d objects, %d failures", c.getCount(), c.getFailCount()))
@@ -128,10 +131,9 @@ func (c *CopyState) init(ctx context.Context) {
 	for i := 0; i < copyConcurrent; i++ {
 		c.addWorker(ctx)
 	}
-	c.wg.Add(1)
+	c.logWg.Add(1)
 	go func() {
-		defer c.wg.Done()
-
+		defer c.logWg.Done()
 		f, err := os.OpenFile(path.Join(dirPath, getFileName(failCopyFile, "")), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 		if err != nil {
 			logDMsg("could not create + copy_fails.txt", err)
@@ -157,9 +159,11 @@ func (c *CopyState) init(ctx context.Context) {
 			}
 		}
 	}()
-	c.wg.Add(1)
+
+	c.logWg.Add(1)
 	go func() {
-		defer c.wg.Done()
+		defer c.logWg.Done()
+
 		f, err := os.OpenFile(path.Join(dirPath, getFileName(logCopyFile, "")), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 		if err != nil {
 			logDMsg("could not create + copy_log.txt", err)
